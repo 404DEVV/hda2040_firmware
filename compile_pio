@@ -1,0 +1,11 @@
+#!/bin/bash
+# compile_hda_pio.sh
+# Compile all .pio files in the current folder into .pio.h headers
+
+for file in *.pio; do
+    base=$(basename "$file" .pio)
+    echo "Compiling $file..."
+    pioasm "$file" "${base}.pio.h"
+done
+
+echo "All PIO files compiled!"

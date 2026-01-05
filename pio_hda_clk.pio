@@ -1,0 +1,44 @@
+; Minimal HDA clock PIO program
+
+.pio_version 0
+
+.program hda_clk
+
+loop:
+    set pins, 0     ; Clock low
+    nop         ; Delay to make high phase 4 cycles total
+    nop
+    out pins, 1
+    nop
+    set pins, 1     ; Clock high
+    nop
+    nop
+    out pins, 1
+    jmp loop        ; Repeat forever
+
+% c-sdk {
+static inline void hda_clk_program_init(PIO pio, uint sm, uint offset,
+                                        uint clk_pin, uint data_pin, float clkdiv) {
+    pio_sm_config c = hda_clk_program_get_default_config(offset);
+
+    // --- Clock pin setup ---
+    sm_config_set_set_pins(&c, clk_pin, 1);                 // clock pin
+    pio_gpio_init(pio, clk_pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, clk_pin, 1, true);
+
+    // --- Data pin setup ---
+    sm_config_set_out_pins(&c, data_pin, 1);               // output pin for data
+    pio_gpio_init(pio, data_pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, data_pin, 1, true);
+
+    // --- Optional: autopull for 16-bit words ---
+    sm_config_set_out_shift(&c, true, true, 32);           // shift_right=true, autopull=true, threshold=16
+
+    // --- PIO clock divider ---
+    sm_config_set_clkdiv(&c, clkdiv);
+
+    // --- Initialize state machine ---
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, false);
+}
+%}
